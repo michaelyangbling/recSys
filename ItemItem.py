@@ -17,6 +17,8 @@ testVis = pd.read_csv("EvalDataYear1MSDWebsite/year1_test_triplets_visible.txt",
 testHid = pd.read_csv("EvalDataYear1MSDWebsite/year1_test_triplets_hidden.txt", sep="\t", header=None)
 
 
+
+
 songs.columns=["song_id","song_index"]
 users.columns=["user_id"]
 valHid.columns = ["user_id","song_id","counts"]
@@ -24,6 +26,8 @@ valVis.columns = ["user_id","song_id","counts"]
 
 testVis.columns=["user_id","song_id","counts"]
 testHid.columns=["user_id","song_id","counts"]
+
+
 print( list( valHid.user_id.unique() )==list( valVis.user_id.unique() ) ) #users same for val and test
 print( list( testHid.user_id.unique() )==list( testVis.user_id.unique() ) )
 
@@ -31,10 +35,15 @@ print( list( testHid.user_id.unique() )==list( testVis.user_id.unique() ) )
 
 
 
-testVis = testVis.head(1500) 
-testHid = testHid.head(1500) #to accelerate following for loop 
-valVis = valVis.head(500)
-valHid = valHid.head(500)
+testVis = testVis.head(10000) 
+testHid = testHid.head(10000) #to accelerate following for loop 
+valVis = valVis.head(2000)
+valHid = valHid.head(2000)
+
+valHid.counts = np.log1p(valHid.counts)
+valVis.counts = np.log1p(valVis.counts)
+testVis.counts = np.log1p(testVis.counts)
+testHid.counts = np.log1p(testHid.counts)
 
 train = pd.concat([testVis,testHid, valVis])
 
@@ -179,3 +188,22 @@ print("train row counts, train average spearman score, original train data count
 # test result: (11, -0.05573288843091613, 41)
 # train result: (145, 0.8580814344493973, 152)
 
+
+
+
+
+
+#log: computational slower, spearman Rank same, meaning log or not log give similar results
+#so spearman maybe a better rank
+
+# testVis = testVis.head(10000) 
+# testHid = testHid.head(10000) #to accelerate following for loop 
+# valVis = valVis.head(2000)
+# valHid = valHid.head(2000)
+#item-item is better
+# 
+#tried log, but rmse of log converted back is same
+# testRms 1.2852925432055633
+# trianRms: 46.804711543019735
+# test result: (89, 0.04907224410554281, 163)
+# train result: (825, 0.6089127292869666, 890)
