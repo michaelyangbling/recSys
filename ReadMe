@@ -1,0 +1,9 @@
+Pyspark setup:
+https://blog.sicara.com/get-started-pyspark-jupyter-guide-tutorial-ae2fe84f594f
+export SPARK_HOME="your spark dir path"
+export PATH=$SPARK_HOME/bin:$PATH
+console: pyspark
+
+run my sparkRec by: ./bin/pyspark fileFullPath --master local[4]
+
+spark may change python exec dir, so always use full path
