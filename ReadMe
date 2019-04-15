@@ -1,9 +1,13 @@
 Pyspark setup:
 https://blog.sicara.com/get-started-pyspark-jupyter-guide-tutorial-ae2fe84f594f
-export SPARK_HOME="your spark dir path"
+export SPARK_HOME="/Users/yzh/Desktop/cour/parallel/spark-2.3.0-bin-hadoop2.7"
 export PATH=$SPARK_HOME/bin:$PATH
 console: pyspark
 
-run my sparkRec by: ./bin/pyspark fileFullPath --master local[4]
+run my sparkRec by: /Users/yzh/Desktop/cour/parallel/spark-2.3.0-bin-hadoop2.7/bin/spark-submit /Users/yzh/Desktop/DataM/msdchallenge/sparkRec.py --master local[4]
 
 spark may change python exec dir, so always use full path
+
+ssh -i /Users/yzh/Desktop/njtest/ec2yang.pem hadoop@ec2-18-233-102-208.compute-1.amazonaws.com
+
+aws emr add-steps — cluster-id j-URDMMQCSBNRD — steps Type=spark,Name=musicTestPy,Args=[ — deploy-mode,cluster, — master,yarn, — conf,spark.yarn.submit.waitAppCompletion=true,s3://aws-logs-842556482220-us-east-1/musicTest/sparkRec.py],ActionOnFailure=CONTINUE

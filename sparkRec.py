@@ -1,10 +1,13 @@
-with open('/Users/yzh/Desktop/DataM/msdchallenge/result', 'w') as file:
+print("running py hahaha")
+# import sys
+# print(123, sys.version)
+with open('/Users/yzh/Desktop/DataM/msdchallenge/EvalDataYear1MSDWebsite/result.txt', 'w') as file:
     file.write(str( "result not written") )
 import math
 import os
 from pyspark import SparkContext
 from pyspark.mllib.recommendation import ALS, MatrixFactorizationModel, Rating
-
+# s3://aws-logs-842556482220-us-east-1/musicTest/
 sc = SparkContext("local", "Simple App")
 trainPaths = ['/Users/yzh/Desktop/DataM/msdchallenge/EvalDataYear1MSDWebsite/year1_test_triplets_hidden.txt',
 '/Users/yzh/Desktop/DataM/msdchallenge/EvalDataYear1MSDWebsite/year1_test_triplets_visible.txt'
@@ -16,40 +19,50 @@ class Maps():
   def __init__(self):
       self.songIntMap = {}
       self.userIntMap = {}
-  def toDict(self, path, numLines):
+  def toDict(self, path, numLines): #numlines:-1 means use whole file
     """
     user1: 0
     user2: 1
     ...
     """
+    # if numlines!=-1:
+    #   with open(path, 'r') as file:
+    #     lines=[next(file) for x in range(numLines)]
+    # else:
+    count=0
     with open(path, 'r') as file:
-        lines=[next(file) for x in range(numLines)]
+     
     # print(lines[0], lines[-1], len(lines))
-    for line in lines:
-        contents = line.split('\t')
-        user = contents[0]
-        song = contents[1]
-        if user not in self.songIntMap:
-            self.userIntMap[ user ] = self.userIntMap.__len__()
-        
-        if song not in self.songIntMap:
-            self.songIntMap[ song ] = self.songIntMap.__len__()
+        for line in file:
+            if count==numLines:
+                break
+            contents = line.split('\t')
+            user = contents[0]
+            song = contents[1]
+            if user not in self.songIntMap:
+                self.userIntMap[ user ] = self.userIntMap.__len__()
+            
+            if song not in self.songIntMap:
+                self.songIntMap[ song ] = self.songIntMap.__len__()
+            count+=1
 
 maps=Maps()
 
 #loading test
-maps.toDict(trainPaths[0], 10000)
+maps.toDict(trainPaths[0], 10000) #map subset, map should include train 
 maps.toDict(trainPaths[1], 10000)
 maps.toDict(trainPaths[2], 2000)
 userIntMap= sc.broadcast(maps.userIntMap) #broadcast stringId: int map to all worker nodes
 songIntMap=sc.broadcast(maps.songIntMap)
 
 
-#train
+#train subset
 r1 = sc.textFile(trainPaths[0]).zipWithIndex().filter(lambda vi: vi[1] < 10000).keys()
 r2 = sc.textFile(trainPaths[1]).zipWithIndex().filter(lambda vi: vi[1] < 10000).keys()
 r3 = sc.textFile(trainPaths[2]).zipWithIndex().filter(lambda vi: vi[1] < 2000).keys()
-
+# r1 = sc.textFile(trainPaths[0])
+# r2 = sc.textFile(trainPaths[1])
+# r3 = sc.textFile(trainPaths[2])
 data = sc.union([r1, r2, r3])
 # Load and parse the data
 
@@ -76,7 +89,7 @@ MSE = ratesAndPreds.map(lambda r: (r[1][0] - r[1][1])**2).mean()
 
 
 # Evaluate the model on test data
-testRatings = sc.textFile(testPath).map(lambda l: l.split('\t')).filter( #only calculate RMSE for met entries
+testRatings = sc.textFile(testPath).zipWithIndex().filter(lambda vi: vi[1] < 2000).keys().map(lambda l: l.split('\t')).filter( #only calculate RMSE for met entries
     lambda test: test[0] in userIntMap.value and test[1] in songIntMap.value
 ).map(
     lambda l: [ userIntMap.value[ l[0] ] , songIntMap.value[ l[1] ] , l[2] ])\
@@ -94,6 +107,7 @@ testMSE = ratesAndPreds.map(lambda r: (r[1][0] - r[1][1])**2).mean()
 
 with open('/Users/yzh/Desktop/DataM/msdchallenge/result', 'w') as file:
     file.write(str( math.sqrt(MSE))+','+str(math.sqrt(testMSE)) +','+str( testCount) )
+    print( str( math.sqrt(MSE))+','+str(math.sqrt(testMSE)) +','+str( testCount) )
 print("Mean Squared Error = " + str(MSE))
 
 # Save and load model
