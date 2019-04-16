@@ -18,58 +18,58 @@ import scala.collection.mutable.Map
 import scala.math.log1p
 object CF {
 
-  def updateMap(path: String, songIntMap: Map[String, Int], userIntMap: Map[String, Int], numLines: Int
-               , arr: Array[String]): Unit ={  //numlines: lines to include
-
-//    turn song and user IDs in file to songIntMap and userIntMap
-//-1 numLines to read all data
-
-    var count=0
-
-//    val credentials = new BasicAWSCredentials("myKey", "mySecretKey")
-//    val s3Client = new AmazonS3Client(credentials)
-//    val s3Object = s3Client.getObject(new GetObjectRequest("my-bucket", "input.txt"))
-//    val myData = Source.fromInputStream(s3Object.getObjectContent())
-
-//    val runid = myData.getLines().mkString
-
-//    val file= Source.fromFile("s3:///ds5230-sparkyang/bigTrain.txt")
-    try {
-      println(99)
-      for (line <- arr) {
-        if (count == numLines) {
-          //reach number of lines to include
-          break
-        }
-        if (line.length!=0) { //empty line due to concatenating files
-
-
-          var contents = line.split('\t')
-          var user = contents(0) //original String ID
-          var song = contents(1)
-
-          if (!userIntMap.contains(user)) { //if not in map, put key->value pair to map
-            userIntMap(user) = userIntMap.size
-          }
-
-          if (!songIntMap.contains(song)) {
-            songIntMap(song) = songIntMap.size
-          }
-
-          count = count + 1
-        }
-      }
-    }
-
-  }
+//  def updateMap(path: String, songIntMap: Map[String, Int], userIntMap: Map[String, Int], numLines: Int
+//               , arr: Array[String]): Unit ={  //numlines: lines to include
+//
+////    turn song and user IDs in file to songIntMap and userIntMap
+////-1 numLines to read all data
+//
+//    var count=0
+//
+////    val credentials = new BasicAWSCredentials("myKey", "mySecretKey")
+////    val s3Client = new AmazonS3Client(credentials)
+////    val s3Object = s3Client.getObject(new GetObjectRequest("my-bucket", "input.txt"))
+////    val myData = Source.fromInputStream(s3Object.getObjectContent())
+//
+////    val runid = myData.getLines().mkString
+//
+////    val file= Source.fromFile("s3:///ds5230-sparkyang/bigTrain.txt")
+//    try {
+//      println(99)
+//      for (line <- arr) {
+//        if (count == numLines) {
+//          //reach number of lines to include
+//          break
+//        }
+//        if (line.length!=0) { //empty line due to concatenating files
+//
+//
+//          var contents = line.split('\t')
+//          var user = contents(0) //original String ID
+//          var song = contents(1)
+//
+//          if (!userIntMap.contains(user)) { //if not in map, put key->value pair to map
+//            userIntMap(user) = userIntMap.size
+//          }
+//
+//          if (!songIntMap.contains(song)) {
+//            songIntMap(song) = songIntMap.size
+//          }
+//
+//          count = count + 1
+//        }
+//      }
+//    }
+//
+//  }
 
   def main(args: Array[String]) {
     val logger: org.apache.log4j.Logger = LogManager.getRootLogger
 
     val conf = new SparkConf().setAppName("Word Count")
     val sc = new SparkContext(conf)
-    val songIntMap: Map[String, Int] = scala.collection.mutable.Map[String, Int]()
-    val userIntMap: Map[String, Int] = scala.collection.mutable.Map[String, Int]()
+//    val songIntMap: Map[String, Int] = scala.collection.mutable.Map[String, Int]()
+//    val userIntMap: Map[String, Int] = scala.collection.mutable.Map[String, Int]()
 
 		// Delete output directory, only to ease local development; will not work on AWS. ===========
 //    val hadoopConf = new org.apache.hadoop.conf.Configuration
@@ -82,9 +82,16 @@ object CF {
     println(args(1))
     val train = sc.textFile(args(0))
     val test = sc.textFile(args(1))
+    //better to persist train.map
+    val userIntMap = train.map(_.split('\t') match { case Array(user, song, rate) =>
+      ( user, true )
+    }).reduceByKey((a, b)=>true).zipWithIndex().map(pair=>(pair._1._1, pair._2.toInt)).collectAsMap()
+    //after zip: ( (uid, true), index )
+//    updateMap(args(0), songIntMap, userIntMap, -1, train.collect() )
 
-
-    updateMap(args(0), songIntMap, userIntMap, -1, train.collect() )
+    val songIntMap = train.map(_.split('\t') match { case Array(user, song, rate) =>
+      ( song, true )
+    }).reduceByKey((a, b)=>true).zipWithIndex().map(pair=>(pair._1._1, pair._2.toInt)).collectAsMap()
     println(1)
 
 
@@ -180,3 +187,8 @@ object CF {
 
 //train Mean Squared Error = 0.027977990345466074
 //test Mean Squared Error = 0.6828938596336082
+
+
+
+//train Mean Squared Error = 0.15145571607849187
+//test Mean Squared Error = 0.38940156327679415

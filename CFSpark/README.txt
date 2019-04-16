@@ -1,6 +1,8 @@
 
 /Users/yzh/Desktop/cour/parallel/spark-2.3.0-bin-hadoop2.7/bin/spark-submit --class project.CF --master local[1]  /Users/yzh/Desktop/DataM/msdchallenge/CFSpark/target/Project-1.0.jar /Users/yzh/Desktop/DataM/msdchallenge/EvalDataYear1MSDWebsite/trainsubset /Users/yzh/Downloads/littleTest
 
+
+aws emr create-cluster --name "DS5230 Spark" --release-label emr-5.20.0 --instance-groups '[{"InstanceCount":2,"InstanceGroupType":"CORE","InstanceType":"m4.2xlarge"},{"InstanceCount":1,"InstanceGroupType":"MASTER","InstanceType":"m4.2xlarge"}]' --applications Name=Spark --steps Type=CUSTOM_JAR,Name="Word Count",Jar="command-runner.jar",ActionOnFailure=TERMINATE_CLUSTER,Args=["spark-submit","--deploy-mode","cluster","--class","project.CF","s3://ds5230-sparkyang/Project-1.0.jar","s3://ds5230-sparkyang/bigTrain.txt","s3://ds5230-sparkyang/littleTest"] --log-uri s3://ds5230-sparkyang/log --use-default-roles --enable-debugging --auto-terminate
 Hadoop MapReduce WordCount Demo
 Example code for CS6240
 Fall 2018
