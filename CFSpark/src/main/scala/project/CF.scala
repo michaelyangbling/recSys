@@ -1,4 +1,7 @@
 package project
+//import com.amazonaws.auth.{BasicAWSCredentials}
+//import com.amazonaws.services.s3.AmazonS3Client
+//import com.amazonaws.services.s3.model.GetObjectRequest
 
 import org.apache.spark.SparkConf
 import org.apache.spark.SparkContext
@@ -8,7 +11,9 @@ import org.apache.spark.mllib.recommendation.ALS
 import org.apache.spark.mllib.recommendation.MatrixFactorizationModel
 import org.apache.spark.mllib.recommendation.Rating
 import scala.io.Source
-
+import scala.util.control.Breaks._
+import scala.collection.mutable.Map
+import scala.math.log1p
 object CF {
 
   def updateMap(path: String, songIntMap: Map[String, Int], userIntMap: Map[String, Int], numLines: Int): Unit ={  //numlines: lines to include
@@ -17,30 +22,38 @@ object CF {
 //-1 numLines to read all data
 
     var count=0
-    val file= Source.fromFile(path)
+
+//    val credentials = new BasicAWSCredentials("myKey", "mySecretKey")
+//    val s3Client = new AmazonS3Client(credentials)
+//    val s3Object = s3Client.getObject(new GetObjectRequest("my-bucket", "input.txt"))
+//    val myData = Source.fromInputStream(s3Object.getObjectContent())
+
+//    val runid = myData.getLines().mkString
+
+    val file= Source.fromFile("s3:///ds5230-sparkyang/bigTrain.txt")
     try {
       for (line <- file.getLines) {
         if (count == numLines) {
           //reach number of lines to include
           break
         }
-        if (contents.length==0){   //empty line due to concatenating files
-          continue
+        if (line.length!=0) { //empty line due to concatenating files
+
+
+          var contents = line.split('\t')
+          var user = contents(0) //original String ID
+          var song = contents(1)
+
+          if (!userIntMap.contains(user)) { //if not in map, put key->value pair to map
+            userIntMap(user) = userIntMap.size
+          }
+
+          if (!songIntMap.contains(song)) {
+            songIntMap(song) = songIntMap.size
+          }
+
+          count = count + 1
         }
-        var contents = line.split('\t')
-        var user = contents(0) //original String ID
-        var song = contents(1)
-
-        if (!userIntMap.contains(user)) { //if not in map, put key->value pair to map
-          userIntMap(user) = userIntMap.size()
-        }
-
-        if (!songIntMap.contains(song)) {
-          songIntMap(song) = songIntMap.size()
-        }
-
-        count = count + 1
-
       }
     }
 
@@ -55,8 +68,8 @@ object CF {
 
     val conf = new SparkConf().setAppName("Word Count")
     val sc = new SparkContext(conf)
-    val songIntMap: Map[String, Int] = Map()
-    val userIntMap: Map[String, Int] = Map()
+    val songIntMap: Map[String, Int] = scala.collection.mutable.Map[String, Int]()
+    val userIntMap: Map[String, Int] = scala.collection.mutable.Map[String, Int]()
 
 		// Delete output directory, only to ease local development; will not work on AWS. ===========
 //    val hadoopConf = new org.apache.hadoop.conf.Configuration
@@ -65,6 +78,8 @@ object CF {
 		// ================
 
     // Load and parse the data
+    println(args(0))
+    println(args(1))
     val train = sc.textFile(args(0))
     val test = sc.textFile(args(1))
 
@@ -82,17 +97,17 @@ object CF {
 
 
 
-
+    //map String to Int
     val trainRatings = train.map(_.split('\t') match { case Array(user, song, rate) =>
-       ( ( userIntMapBroad.value.get(user), songIntMapBroad.value.get(song)), rate ) //map String to Int
-    }).map( tup => Rating(tup._1._1, tup._1._2, tup._2.toDouble ) )
+       ( ( userIntMapBroad.value.get(user).get, songIntMapBroad.value.get(song).get ), rate )
+    }).map( tup => Rating(tup._1._1, tup._1._2, log1p(tup._2.toDouble )) )
 
-
+    //filter: only calculate RMSE for met entries
     val testRatings = test.map(_.split('\t') match { case Array(user, song, rate) =>
-      ( (user, song), rate )  //filter: only calculate RMSE for met entries
-    }).filter( tup => userIntMapBroad.value.contains(tup._1._1) &&  songIntMapBroad.value.contains(tup._1._2)  )
-    ).map( tup => ( ( userIntMapBroad.value.get( tup._1._1 ), songIntMapBroad.value.get( tup._1._2 ) ), tup._2 )
-    ).map( tup => Rating(tup._1._1, tup._1._2, tup._2.toDouble ) )
+      ( (user, song), rate )}).filter( tup =>
+      userIntMapBroad.value.contains(tup._1._1) &&  songIntMapBroad.value.contains(tup._1._2)  ).map( tup =>
+      ( ( userIntMapBroad.value.get( tup._1._1).get, songIntMapBroad.value.get( tup._1._2).get ), tup._2 )).map( tup =>
+      Rating(tup._1._1, tup._1._2, log1p( tup._2.toDouble ) ) )
 
 
 
