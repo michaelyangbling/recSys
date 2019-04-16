@@ -3,6 +3,8 @@ package project
 //import com.amazonaws.services.s3.AmazonS3Client
 //import com.amazonaws.services.s3.model.GetObjectRequest
 
+
+
 import org.apache.spark.SparkConf
 import org.apache.spark.SparkContext
 import org.apache.log4j.LogManager
@@ -16,7 +18,8 @@ import scala.collection.mutable.Map
 import scala.math.log1p
 object CF {
 
-  def updateMap(path: String, songIntMap: Map[String, Int], userIntMap: Map[String, Int], numLines: Int): Unit ={  //numlines: lines to include
+  def updateMap(path: String, songIntMap: Map[String, Int], userIntMap: Map[String, Int], numLines: Int
+               , arr: Array[String]): Unit ={  //numlines: lines to include
 
 //    turn song and user IDs in file to songIntMap and userIntMap
 //-1 numLines to read all data
@@ -30,9 +33,10 @@ object CF {
 
 //    val runid = myData.getLines().mkString
 
-    val file= Source.fromFile("s3:///ds5230-sparkyang/bigTrain.txt")
+//    val file= Source.fromFile("s3:///ds5230-sparkyang/bigTrain.txt")
     try {
-      for (line <- file.getLines) {
+      println(99)
+      for (line <- arr) {
         if (count == numLines) {
           //reach number of lines to include
           break
@@ -57,10 +61,6 @@ object CF {
       }
     }
 
-    finally{
-      file.close()
-    }
-
   }
 
   def main(args: Array[String]) {
@@ -83,12 +83,14 @@ object CF {
     val train = sc.textFile(args(0))
     val test = sc.textFile(args(1))
 
-    updateMap(args(0), songIntMap, userIntMap, -1)
+
+    updateMap(args(0), songIntMap, userIntMap, -1, train.collect() )
+    println(1)
 
 
     val userIntMapBroad= sc.broadcast(userIntMap) //broadcast stringId: int map to all worker nodes
+    println(2)
     val songIntMapBroad=sc.broadcast(songIntMap)
-
 
 //    ratings = data.map(lambda l: l.split('\t')).map(
 //      lambda l: [ userIntMap.value[ l[0] ] , songIntMap.value[ l[1] ] , l[2] ])\
@@ -96,12 +98,12 @@ object CF {
 
 
 
-
+    println(3)
     //map String to Int
     val trainRatings = train.map(_.split('\t') match { case Array(user, song, rate) =>
        ( ( userIntMapBroad.value.get(user).get, songIntMapBroad.value.get(song).get ), rate )
     }).map( tup => Rating(tup._1._1, tup._1._2, log1p(tup._2.toDouble )) )
-
+    println(4)
     //filter: only calculate RMSE for met entries
     val testRatings = test.map(_.split('\t') match { case Array(user, song, rate) =>
       ( (user, song), rate )}).filter( tup =>
@@ -117,12 +119,12 @@ object CF {
     val numIterations = 10
 
     val model = ALS.train(trainRatings, rank, numIterations, 0.01)
-
+    println(5)
     // Evaluate the model on rating data
     val usersSongs = trainRatings.map { case Rating(user, song, rate) =>
       (user, song)
     }
-
+    println(6)
 //    usersSongs.saveAsTextFile(args(2))
 
     val predictions =
@@ -161,6 +163,7 @@ object CF {
       val err = r1 - r2
       err * err
     }.mean()
+    println(7)
 
 
 
@@ -174,3 +177,6 @@ object CF {
     //val sameModel = MatrixFactorizationModel.load(sc, "target/tmp/myCollaborativeFilter")
   }
 }
+
+//train Mean Squared Error = 0.027977990345466074
+//test Mean Squared Error = 0.6828938596336082

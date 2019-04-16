@@ -11,3 +11,8 @@ spark may change python exec dir, so always use full path
 ssh -i /Users/yzh/Desktop/njtest/ec2yang.pem hadoop@ec2-18-233-102-208.compute-1.amazonaws.com
 
 aws emr add-steps — cluster-id j-URDMMQCSBNRD — steps Type=spark,Name=musicTestPy,Args=[ — deploy-mode,cluster, — master,yarn, — conf,spark.yarn.submit.waitAppCompletion=true,s3://aws-logs-842556482220-us-east-1/musicTest/sparkRec.py],ActionOnFailure=CONTINUE
+
+
+
+
+aws emr create-cluster --name "DS5230 Spark" --release-label emr-5.20.0 --instance-groups '[{"InstanceCount":4,"InstanceGroupType":"CORE","InstanceType":"r3.2xlarge"},{"InstanceCount":1,"InstanceGroupType":"MASTER","InstanceType":"r3.2xlarge"}]' --applications Name=Spark --steps Type=CUSTOM_JAR,Name="Word Count",Jar="command-runner.jar",ActionOnFailure=TERMINATE_CLUSTER,Args=["spark-submit","--deploy-mode","cluster","--class","project.CF","--executor-memory","10g","--executor-memoryOverhead","10g","--driver-memory","12g","--driver-memoryOverhead","12g","s3://ds5230-sparkyang/Project-1.0.jar","s3://ds5230-sparkyang/bigTrain.txt","s3://ds5230-sparkyang/littleTest"] --log-uri s3://ds5230-sparkyang/log --use-default-roles --enable-debugging --auto-terminate

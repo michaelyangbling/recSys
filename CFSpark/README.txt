@@ -1,3 +1,6 @@
+
+/Users/yzh/Desktop/cour/parallel/spark-2.3.0-bin-hadoop2.7/bin/spark-submit --class project.CF --master local[1]  /Users/yzh/Desktop/DataM/msdchallenge/CFSpark/target/Project-1.0.jar /Users/yzh/Desktop/DataM/msdchallenge/EvalDataYear1MSDWebsite/trainsubset /Users/yzh/Downloads/littleTest
+
 Hadoop MapReduce WordCount Demo
 Example code for CS6240
 Fall 2018
